@@ -1,0 +1,9 @@
+node_modules
+config
+npm-debug.log
+.DS_Store
+/public/js/bundle/
+package-lock.json
+/logs/*.log
+url_list.json
+play_config.json
