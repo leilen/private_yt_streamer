@@ -10,8 +10,6 @@ var appModule = require('../app');
 var debug = require('debug')('likeafamily:server');
 var http = require('http');
 
-const customSocketIO = require("../custom_modules/custom_socket");
-
 /**
  * Get port from environment and store in Express.
  */
@@ -24,9 +22,6 @@ appModule.app.set('port', port);
  */
 
 var server = http.createServer(appModule.app);
-customSocketIO.initIO(server)
-
-appModule.cPlayer.setCSocket(customSocketIO);
 
 /**
  * Listen on provided port, on all network interfaces.

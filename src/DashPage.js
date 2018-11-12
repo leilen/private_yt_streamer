@@ -4,7 +4,6 @@ import { UseConsume } from './MainProvider.js'
 import Modal from './templates/Modal.js';
 
 import Select2 from 'react-select2-wrapper';
-import socketIOClient from 'socket.io-client'
 
 import 'react-select2-wrapper/css/select2.css';
 import '../public/css/dash.css';
@@ -40,10 +39,6 @@ class DashPage extends Component {
         this.inputFormOnKeyPress = this.inputFormOnKeyPress.bind(this);
         this.volumePostAction = this.volumePostAction.bind(this);
         this.editListButtonAction = this.editListButtonAction.bind(this);
-        this.onSocketPlay = this.onSocketPlay.bind(this);
-        this.onSocketVolume = this.onSocketVolume.bind(this);
-        this.onSocketAddList = this.onSocketAddList.bind(this);
-        this.onSocketMode = this.onSocketMode.bind(this);
         this.timerFunction = this.timerFunction.bind(this);
         this.setCurrentUrl = this.setCurrentUrl.bind(this);
 
@@ -65,20 +60,12 @@ class DashPage extends Component {
             currentUrl :null
         };
 
-        this.socket = socketIOClient()
-        this.socket.on("play",this.onSocketPlay);
-        this.socket.on("volume",this.onSocketVolume);
-        this.socket.on("addList",this.onSocketAddList);
-        this.socket.on("loadDash",this.loadDataFunc);
-        this.socket.on("mode",this.onSocketMode);
-
         this.timer = null;
         this.playStartedTime = null;
 
 
     }
     componentDidMount() {
-        startLoading();
         document.addEventListener('click', this.backgroundOnClickAction);
     }
     componentWillUnmount() {
@@ -133,12 +120,10 @@ class DashPage extends Component {
         if (url){
             jsonData["url"] = url
         }
-        this.socket.emit('play', jsonData);
     }
     stopButtonAction() {
         startLoading();
         let jsonData = {isPlay : false}
-        this.socket.emit('play', jsonData);
     }
     addButtonAction() {
         this.addUrlModalRef.current.showModal();
@@ -163,7 +148,6 @@ class DashPage extends Component {
             "isAdd" : true,
             "url" : this.state.inputText.addUrl
         }
-        this.socket.emit("addList",jsonData);
         this.addUrlModalRef.current.hideModal();
     }
     listClickAction(url,e){
@@ -175,9 +159,6 @@ class DashPage extends Component {
         const name = e.target.name;
         if (name == "mode"){
             startLoading();
-            this.socket.emit("mode",{
-                "mode":e.target.value
-            });
         }
     }
     volumeClickAction(){
@@ -217,7 +198,6 @@ class DashPage extends Component {
         let jsonData = {
             "vol" : this.state.inputText.volume / 10
         }
-        this.socket.emit('volume', jsonData);
     }
     editListButtonAction(){
         this.setState({
@@ -233,8 +213,6 @@ class DashPage extends Component {
                 "isAdd" : false,
                 "url" : url
             }
-            this.socket.emit("addList",jsonData);
-
         }
     }
     timerFunction(){
@@ -248,74 +226,6 @@ class DashPage extends Component {
             })
         }
     }
-    onSocketPlay(data){
-        finLoading();
-        if (this.timer){
-            clearInterval(this.timer);
-        }
-        this.playStartedTime = data["playStartedTime"];
-        this.timerFunction();
-        let tempUrlList = this.state.data["url-list"];
-
-        if (data["isPlay"]){
-            this.timer = setInterval(this.timerFunction, 1000);
-
-            for (let i in tempUrlList){
-                if (tempUrlList[i]["url"] == data["list"]["url"]){
-                    tempUrlList[i] = data["list"]
-                    break;
-                }
-            }
-        }
-        
-        this.setState({
-            currentSecond : 0,
-            currentUrl : data["list"],
-            data : {
-                ...this.state.data,
-                "is-playing" : data["isPlay"],
-                "play-status" : {
-                    ...this.state.data["play-status"],
-                    "current_url" : data["list"]["url"]
-                },
-                "url-list" : tempUrlList
-            }
-        });
-    }
-    onSocketVolume(data){
-        finLoading();
-        this.setState({
-            isVolumeEditable : false,
-            data:{
-                ...this.state.data,
-                ["play-status"] : {
-                    ...this.state.data["play-status"],
-                    volume : data["vol"]
-                }
-            }
-        })
-    }
-    onSocketAddList(data){
-        finLoading();
-        let newList = [];
-        if (data["isAdd"]){
-            if (data["isRedendunted"]){
-                newList = this.state.data["url-list"].filter(v => (v["url"] != data["list"]["url"])).concat([data["list"]]);
-            }else{
-                newList = this.state.data["url-list"].concat([data["list"]]);
-            }
-        }else{
-            newList = this.state.data["url-list"].filter(v =>{
-                return v["url"] != data["list"]["url"]
-            });
-        }
-        this.setState({
-            data:{
-                ...this.state.data,
-                "url-list" : newList
-            }
-        })
-    }
     setCurrentUrl(){
         for (let v of unWrapToArray(this.state.data["url-list"])){
             if (v["url"] == this.state.data["play-status"]["current_url"]){
@@ -325,20 +235,6 @@ class DashPage extends Component {
                 })
                 break;
             }
-        }
-    }
-    onSocketMode(data){
-        finLoading();
-        if (data["mode"]){
-            this.setState({
-                data:{
-                    ...this.state.data,
-                    "play-status" :{
-                        ...this.state.data["play-status"],
-                        "mode" : data["mode"]
-                    }
-                }
-            });
         }
     }
     render() {
